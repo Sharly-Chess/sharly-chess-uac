@@ -19,7 +19,7 @@ jobs:
     # for cloud code-signing. If the job doesn't start, it is probably because GitHub did not
     # find a self-hosted runner with label 'your-github-id'.
     # In this case, check the labels of your runners.
-    runs-on: ${{ github.actor }}
+    runs-on: windows-latest
     steps:
       # Get the current date to set the title of the release
       - name: Get current date
