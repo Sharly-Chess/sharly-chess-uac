@@ -27,13 +27,13 @@ class UAC(ABC):
         This method should throw an exception on error."""
         pass
 
-    def _admin_check(self) -> None:
+    def _admin_check(self):
         """Checks that everything is good once running with administrator rights.
         This method should throw an exception on error."""
         pass
 
     @abstractmethod
-    def _run(self) -> str | None:
+    def _run(self):
         """Does the job (with administrator rights).
         Returns an error message on failure or None on success."""
         pass

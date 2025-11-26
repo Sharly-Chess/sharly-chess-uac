@@ -1,8 +1,8 @@
 import argparse
 import importlib.metadata
 import sys
+from argparse import ArgumentError
 from pathlib import Path
-from time import sleep
 
 from packaging.version import Version
 
@@ -63,15 +63,8 @@ def main():
     if args.windows_defender_exclude:
         WindowsDefenderUAC(args.windows_defender_exclude).run_as_admin()
     else:
-        raise RuntimeError(f'[{sys.argv[0]}]: no parameter provided.')
+        raise ArgumentError(f'[{sys.argv[0]}]: no parameter provided.')
 
 
 if __name__ == '__main__':
-    try:
-        main()
-        # Wait 2 seconds to let the users see eventual success messages.
-        sleep(2)
-    except Exception as e:
-        print(f'Error: {e}')
-        input('Type Enter to close this window.')
-        raise
+    main()
