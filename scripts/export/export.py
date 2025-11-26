@@ -90,5 +90,6 @@ with ZipFile(zip_file, 'w', ZIP_DEFLATED) as zf:
     os.chdir(cwd)
 
 _delete_folder(build_dir)
+_delete_folder(dist_dir)
 
 print('Done.')

@@ -87,14 +87,14 @@ jobs:
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
-          name: sharly-chess-${{ steps.version.outputs.version }}
+          name: sharly-chess-uac-${{ steps.version.outputs.version }}
           path: export-windows/
-      - name: Rename artifacts with platform suffix
+      - name: Move artifact to the release files
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           mkdir -p release-files
           # Windows files
-          cp export-windows/sharly-chess-uac-${VERSION}.zip release-files/sharly-chess-uac-${VERSION}.zip
+          cp export-windows/sharly-chess-uac-${VERSION}.zip release-files/
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
