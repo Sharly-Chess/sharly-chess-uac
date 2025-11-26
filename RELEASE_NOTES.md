@@ -1,4 +1,4 @@
-# _Sharly Chess UAC _ release notes
+# _Sharly Chess UAC_ release notes
 
 ## _Windows Defender_
 
