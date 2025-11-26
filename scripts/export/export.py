@@ -51,7 +51,7 @@ def _delete_file(
         file.unlink()
 
 
-basename: str = f'sharly_chess_uac-{SHARLY_CHESS_UAC_VERSION}'
+basename: str = f'sharly-chess-uac-{SHARLY_CHESS_UAC_VERSION}'
 
 build_dir: Path = BASE_DIR / 'build'
 _delete_folder(build_dir)

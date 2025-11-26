@@ -94,7 +94,7 @@ jobs:
           VERSION="${{ steps.version.outputs.version }}"
           mkdir -p release-files
           # Windows files
-          cp export-windows/sharly-chess-uac-${VERSION}.zip release-files/
+          cp export-windows/sharly-chess-uac-${VERSION}.zip release-files/sharly-chess-uac-${{ steps.version.outputs.version }}.zip
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
