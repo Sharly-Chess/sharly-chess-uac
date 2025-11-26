@@ -57,11 +57,13 @@ build_dir: Path = BASE_DIR / 'build'
 _delete_folder(build_dir)
 dist_dir: Path = BASE_DIR / 'dist'
 _delete_folder(dist_dir)
-exe_file: Path = dist_dir / f'sharly_chess_uac-{SHARLY_CHESS_UAC_VERSION}.exe'
+exe_file: Path = dist_dir / f'{basename}.exe'
 _delete_file(exe_file)
-zip_file: Path = dist_dir / f'{basename}.zip'
+export_dir: Path = BASE_DIR / 'export'
+zip_file: Path = export_dir / f'{basename}.zip'
 _delete_file(zip_file)
 
+print(f'Creating executable [{exe_file}]...')
 run(
     [
         '--clean',
@@ -79,8 +81,8 @@ run(
     ]
 )
 
+print(f'Creating archive [{zip_file}]...')
 zip_file.parent.mkdir(parents=True, exist_ok=True)
-
 with ZipFile(zip_file, 'w', ZIP_DEFLATED) as zf:
     cwd: str = os.getcwd()
     os.chdir(dist_dir)
@@ -88,3 +90,5 @@ with ZipFile(zip_file, 'w', ZIP_DEFLATED) as zf:
     os.chdir(cwd)
 
 _delete_folder(build_dir)
+
+print('Done.')
