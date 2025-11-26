@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools >= 75.5.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sharly-chess-uac"
+description = "A Sharly Chess utility to get administrator rights on Windows and perform antivirus operations"
+requires-python = ">=3.13.0"
+version = "1.0.0"
+
+authors = [
+  { name = "Pascal Aubry", email = "support@sharly-chess.com" },
+  { name = "Sammy Plat", email = "support@sharly-chess.com" },
+  { name = "Timothy Armes", email = "support@sharly-chess.com" },
+  { name = "Youri Aubry", email = "support@sharly-chess.com" },
+]
+license = { text = "AGPL v3.0" }
+readme = "README.md"
+dependencies = [
+]
+
+[project.optional-dependencies]
+lint = ["ruff", "validate-pyproject", "pipdeptree", "mypy", "pre-commit"]
+
+export = ["PyInstaller ~= 6.15.0"]
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.mypy]
+check_untyped_defs = true
+disable_error_code = ["import-untyped", "no-redef"]
