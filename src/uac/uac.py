@@ -6,7 +6,6 @@ from pathlib import Path
 from subprocess import list2cmdline
 from time import sleep
 
-from decorator import decorator
 from tee import StdoutTee, StderrTee
 
 
@@ -92,71 +91,6 @@ class UACResult:
         )
 
 
-@decorator
-def requires_admin(function, *args, **kwargs) -> UACResult:
-    if platform.system() != 'Windows':
-        print('Decorator requires_admin can be executed on Windows only.')
-        return UACResult(
-            result=function(*args, **kwargs),
-        )
-
-    stdout_temp_fn = 'pyuac.stdout.tmp.txt'
-    stderr_temp_fn = 'pyuac.stderr.tmp.txt'
-
-    stdout_handle = sys.stdout
-    stderr_handle = sys.stderr
-
-    if is_user_admin():
-        print('Administrator privileges.')
-        with (
-            StdoutTee(stdout_temp_fn, mode='a', buff=1),
-            StderrTee(stderr_temp_fn, mode='a', buff=1),
-        ):
-            try:
-                uac_result: UACResult = UACResult(
-                    result=function(*args, **kwargs) or 0,
-                )
-                print(f'Function returned [{uac_result.result}]')
-                return uac_result
-            except Exception as e:
-                print(f'Error running function as admin: {e}')
-                raise
-    else:
-        print('User privileges, requesting Administrator rights...')
-        uac_result: UACResult = UACResult(
-            result=run_as_admin(),
-        )
-        print('Back to user mode to collect result.')
-        for is_stdout, filename, handle in (
-            (True, stdout_temp_fn, stdout_handle),
-            (False, stderr_temp_fn, stderr_handle),
-        ):
-            if os.path.exists(filename):
-                with open(filename, 'r') as log_fh:
-                    console_output = log_fh.read()
-                os.remove(filename)
-                if os.path.exists(filename):
-                    print(f"Couldn't delete temporary log file [{filename}]")
-                scan_for_error = ['exception', 'error']
-                lines = str.splitlines(console_output.strip())
-                if lines:
-                    last_line = lines[-1].strip()
-                    for error_str in scan_for_error:
-                        if last_line.lower().find(error_str) != -1:
-                            print(
-                                f'Identified an error line in Admin process log at {filename} - emitting RuntimeError in parent process.\n{last_line}'
-                            )
-                            raise RuntimeError(last_line)
-
-                if is_stdout:
-                    uac_result.stdout = console_output
-                else:
-                    uac_result.stderr = console_output
-                handle.write(console_output)
-                handle.flush()
-            return uac_result
-
-
 class UAC(ABC):
     """An abstract class that asks for admin privileges to execute its run() method."""
 
@@ -178,14 +112,46 @@ class UAC(ABC):
     def name(self) -> str:
         pass
 
-    def run_as_admin(self):
+    def run_as_admin(self) -> UACResult:
         """Runs with administrator rights (or reload to)."""
-        return self._run_as_admin()
-
-    @requires_admin
-    def _run_as_admin(self):
-        """Runs with administrator rights (or reload to)."""
-        self._run()
+        stdout_tmp_file: Path = self.tmp_dir / 'stdout.txt'
+        stderr_tmp_file: Path = self.tmp_dir / 'stderr.txt'
+        if is_user_admin():
+            print('Administrator privileges.')
+            with (
+                StdoutTee(stdout_tmp_file, mode='a', buff=1),
+                StderrTee(stderr_tmp_file, mode='a', buff=1),
+            ):
+                try:
+                    uac_result: UACResult = UACResult(
+                        result=self._run() or 0,
+                    )
+                    print(f'Function returned [{uac_result.result}]')
+                    return uac_result
+                except Exception as e:
+                    print(f'Error running function as admin: {e}')
+                    raise
+        else:
+            print('User privileges, requesting Administrator rights...')
+            uac_result: UACResult = UACResult(
+                result=run_as_admin(),
+            )
+            print('Back to user mode to collect result.')
+            for is_stdout, file, handle in (
+                (True, stdout_tmp_file, sys.stdout),
+                (False, stderr_tmp_file, sys.stderr),
+            ):
+                if file.is_file():
+                    with open(file, 'r') as log_fh:
+                        console_output = log_fh.read()
+                    file.unlink(missing_ok=True)
+                    if is_stdout:
+                        uac_result.stdout = console_output
+                    else:
+                        uac_result.stderr = console_output
+                    handle.write(console_output)
+                    handle.flush()
+                return uac_result
 
     @abstractmethod
     def _run(self):
