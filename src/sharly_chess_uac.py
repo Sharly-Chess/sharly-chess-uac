@@ -6,8 +6,6 @@ from pathlib import Path
 
 from packaging.version import Version
 
-from uac.windows_defender import WindowsDefenderUAC
-
 APP_NAME: str = 'sharly-chess-uac'
 SHARLY_CHESS_UAC_VERSION: Version = Version(importlib.metadata.version(APP_NAME))
 DEVEL_ENV: bool = not getattr(sys, 'frozen', False)
@@ -59,11 +57,21 @@ def main():
         '--windows-defender-exclude',
         type=str,
     )
+    parser.add_argument(
+        '--avast-exclude',
+        type=str,
+    )
     args = parser.parse_args()
     if args.windows_defender_exclude:
+        from uac.windows_defender import WindowsDefenderUAC
+
         WindowsDefenderUAC(args.windows_defender_exclude).run_as_admin()
+    elif args.avast_exclude:
+        from uac.avast import AvastUAC
+
+        AvastUAC(args.avast_exclude).run_as_admin()
     else:
-        raise ArgumentError(f'[{sys.argv[0]}]: no parameter provided.')
+        raise ArgumentError(None, f'[{sys.argv[0]}]: no parameter provided.')
 
 
 if __name__ == '__main__':

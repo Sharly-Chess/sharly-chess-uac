@@ -77,7 +77,6 @@ run(
         '--paths=.',
         '--optimize=1',
         'src/sharly_chess_uac.py',
-        '--windowed',
         '--icon=src/sharly-chess.ico',
     ]
 )

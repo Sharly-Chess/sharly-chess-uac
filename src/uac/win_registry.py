@@ -3,17 +3,21 @@ from typing import Literal, Any
 from winreg import HKEYType
 
 
+class WinregistryException(Exception):
+    pass
+
+
 class WinRegistryUtils:
     @classmethod
-    def _set_registry_value(
+    def _set_value(
         cls,
         key: HKEYType | int,
         sub_key: str,
         name: str,
         type: Literal[4, 5] | int,
         value: Any,
-    ) -> bool:
-        """Sets the value of an entry of the registry, returns True on success, False on failure"""
+    ):
+        """Sets the value of an entry of the registry, raises an exception on error."""
         try:
             winreg.CreateKey(key, sub_key)
             registry_key = winreg.OpenKey(
@@ -30,36 +34,41 @@ class WinRegistryUtils:
                 value,
             )
             winreg.CloseKey(registry_key)
-            return True
         except WindowsError as we:
-            print(
+            raise WinregistryException(
                 f'{cls.__name__}._set_registry_value(key=[{key}], sub_key=[{sub_key}], name=[{name}], value=[{value}]) raised an error: {we}'
             )
-            return False
 
     @classmethod
-    def _set_registry_hklm_value(
+    def _set_hklm_value(
         cls,
         sub_key: str,
         name: str,
         type: Literal[4, 5] | int,
         value: Any,
-    ) -> bool:
-        return cls._set_registry_value(
-            winreg.HKEY_LOCAL_MACHINE, sub_key, name, type, value
-        )
+    ):
+        cls._set_value(winreg.HKEY_LOCAL_MACHINE, sub_key, name, type, value)
 
     @classmethod
-    def set_registry_hklm_dword(
+    def set_hklm_dword(
         cls,
         sub_key: str,
         name: str,
         value: Any,
-    ) -> bool:
-        return cls._set_registry_hklm_value(sub_key, name, winreg.REG_DWORD, value)
+    ):
+        cls._set_hklm_value(sub_key, name, winreg.REG_DWORD, value)
 
     @classmethod
-    def _get_registry_value(
+    def set_hklm_sz(
+        cls,
+        sub_key: str,
+        name: str,
+        value: Any,
+    ):
+        cls._set_hklm_value(sub_key, name, winreg.REG_SZ, value)
+
+    @classmethod
+    def _get_value(
         cls,
         key: HKEYType | int,
         sub_key: str,
@@ -75,30 +84,27 @@ class WinRegistryUtils:
             value, regtype = winreg.QueryValueEx(registry_key, name)
             winreg.CloseKey(registry_key)
             return value
-        except WindowsError as we:
-            print(
-                f'{cls.__name__}._get_registry_value(key=[{key}], sub_key=[{sub_key}], name=[{name}]) raised an error: {we}'
-            )
+        except WindowsError:
             return None
 
     @classmethod
-    def get_registry_hklm_value(
+    def get_hklm_value(
         cls,
         sub_key: str,
         name: str,
     ) -> Any:
-        return cls._get_registry_value(winreg.HKEY_LOCAL_MACHINE, sub_key, name)
+        return cls._get_value(winreg.HKEY_LOCAL_MACHINE, sub_key, name)
 
     @classmethod
-    def get_registry_hkcu_value(
+    def get_hkcu_value(
         cls,
         sub_key: str,
         name: str,
     ) -> Any:
-        return cls._get_registry_value(winreg.HKEY_CURRENT_USER, sub_key, name)
+        return cls._get_value(winreg.HKEY_CURRENT_USER, sub_key, name)
 
     @classmethod
-    def _get_registry_values(
+    def _get_values(
         cls,
         key: HKEYType | int,
         sub_key: str,
@@ -116,21 +122,71 @@ class WinRegistryUtils:
                 i += 1
             return key_dict
         except WindowsError as we:
-            print(
+            raise WinregistryException(
                 f'{cls.__name__}._get_registry_values(key=[{key}], sub_key=[{sub_key}]) raised an error: {we}'
             )
-            return key_dict
 
     @classmethod
-    def get_registry_hklm_values(
+    def get_hklm_values(
         cls,
         sub_key: str,
     ) -> dict[str, Any]:
-        return cls._get_registry_values(winreg.HKEY_LOCAL_MACHINE, sub_key)
+        return cls._get_values(winreg.HKEY_LOCAL_MACHINE, sub_key)
 
     @classmethod
-    def get_registry_hkcu_values(
+    def get_hkcu_values(
         cls,
         sub_key: str,
     ) -> dict[str, Any]:
-        return cls._get_registry_values(winreg.HKEY_CURRENT_USER, sub_key)
+        return cls._get_values(winreg.HKEY_CURRENT_USER, sub_key)
+
+    @classmethod
+    def _delete_sub_key(
+        cls,
+        key: HKEYType | int,
+        sub_key: str,
+        sub_sub_key: str = '',
+    ):
+        # https://stackoverflow.com/questions/38205784/python-how-to-delete-registry-key-and-subkeys-from-hklm-getting-error-5
+        """Deletes an entry of the registry, raises an exception on error."""
+        if sub_sub_key == '':
+            current_key = sub_key
+        else:
+            current_key = sub_key + '\\' + sub_sub_key
+        try:
+            open_key = winreg.OpenKey(key, current_key, 0, winreg.KEY_ALL_ACCESS)
+            info_key = winreg.QueryInfoKey(open_key)
+            for x in range(0, info_key[0]):
+                # NOTE:: This code is to delete the key and all subkeys.
+                #  If you just want to walk through them, then
+                #  you should pass x to EnumKey. subkey = _winreg.EnumKey(open_key, x)
+                #  Deleting the subkey will change the SubKey count used by EnumKey.
+                #  We must always pass 0 to EnumKey so we
+                #  always get back the new first SubKey.
+                local_sub_key = winreg.EnumKey(open_key, 0)
+                try:
+                    winreg.DeleteKey(open_key, local_sub_key)
+                except Exception:
+                    cls._delete_sub_key(key, current_key, local_sub_key)
+                    # no extra delete here since each call
+                    # to _delete_registry_sub_key will try to delete itself when its empty.
+            winreg.DeleteKey(open_key, '')
+            open_key.Close()
+        except WindowsError as we:
+            raise WinregistryException(
+                f'{cls.__name__}._delete_registry_sub_key(key=[{key}], sub_key=[{sub_key}], sub_sub_key=[{sub_sub_key}]) raised an error: {we}'
+            )
+
+    @classmethod
+    def delete_hklm_key(
+        cls,
+        sub_key: str,
+    ):
+        cls._delete_sub_key(winreg.HKEY_LOCAL_MACHINE, sub_key)
+
+    @classmethod
+    def delete_hkcu_key(
+        cls,
+        sub_key: str,
+    ):
+        cls._delete_sub_key(winreg.HKEY_CURRENT_USER, sub_key)
