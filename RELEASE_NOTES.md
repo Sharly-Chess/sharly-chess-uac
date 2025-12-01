@@ -3,6 +3,7 @@
 ## General
 
 - Added missing module `tee` (1.1.1)
+- Fixed stderr handling (1.1.2)
 
 ## _Avast_
 
