@@ -1,4 +1,3 @@
-import os
 import platform
 import sys
 from abc import ABC, abstractmethod
@@ -12,26 +11,25 @@ from tee import StdoutTee, StderrTee
 def is_user_admin() -> bool:
     """Check if the current OS user is an Administrator or root.
     :return: True if the current user is an 'Administrator', otherwise False."""
-    if platform.system() == 'Windows':
-        import win32security
+    if platform.system() != 'Windows':
+        raise NotImplementedError('This function is only implemented on Windows.')
 
-        try:
-            print('Calling CreateWellKnownSid()...')
-            admin_sid = win32security.CreateWellKnownSid(
-                win32security.WinBuiltinAdministratorsSid,
-                None,
-            )
-            print(f'CreateWellKnownSid() returned [{admin_sid}].')
-            print('Calling CheckTokenMembership()...')
-            return_value = win32security.CheckTokenMembership(0, admin_sid)
-            print(f'CheckTokenMembership() returned [{return_value}].')
-            return return_value
-        except Exception as e:
-            print(f'Admin check failed, assuming not an admin: {e}.')
-            return False
-    else:
-        # Check for root on Posix
-        return os.getuid() == 0
+    import win32security
+
+    try:
+        print('Calling CreateWellKnownSid()...')
+        admin_sid = win32security.CreateWellKnownSid(
+            win32security.WinBuiltinAdministratorsSid,
+            None,
+        )
+        print(f'CreateWellKnownSid() returned [{admin_sid}].')
+        print('Calling CheckTokenMembership()...')
+        return_value = win32security.CheckTokenMembership(0, admin_sid)
+        print(f'CheckTokenMembership() returned [{return_value}].')
+        return return_value
+    except Exception as e:
+        print(f'Admin check failed, assuming not an admin: {e}.')
+        return False
 
 
 def run_as_admin() -> int:
@@ -151,7 +149,7 @@ class UAC(ABC):
                         uac_result.stderr = console_output
                     handle.write(console_output)
                     handle.flush()
-                return uac_result
+            return uac_result
 
     @abstractmethod
     def _run(self):
