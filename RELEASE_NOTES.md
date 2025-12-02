@@ -7,4 +7,5 @@
 
 ## _Avast_
 
-- Option --avast-exclude (1.1.0)
+- Added option --avast-exclude (1.1.0)
+- Removed option --avast-exclude (1.1.3)
