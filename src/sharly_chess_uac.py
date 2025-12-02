@@ -57,19 +57,11 @@ def main():
         '--windows-defender-exclude',
         type=str,
     )
-    parser.add_argument(
-        '--avast-exclude',
-        type=str,
-    )
     args = parser.parse_args()
     if args.windows_defender_exclude:
         from uac.windows_defender import WindowsDefenderUAC
 
         WindowsDefenderUAC(args.windows_defender_exclude).run_as_admin()
-    elif args.avast_exclude:
-        from uac.avast import AvastUAC
-
-        AvastUAC(args.avast_exclude).run_as_admin()
     else:
         raise ArgumentError(None, f'[{sys.argv[0]}]: no parameter provided.')
 
